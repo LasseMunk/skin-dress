@@ -7,3 +7,7 @@ export interface ClothingItem {
 export interface ClothingData {
   [key: string]: ClothingItem
 }
+
+export interface ClothingItemWithIndex extends ClothingItem {
+  originalIndex: number
+}

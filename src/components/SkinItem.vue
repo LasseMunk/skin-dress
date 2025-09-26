@@ -1,22 +1,21 @@
 <script setup lang="ts">
+import type { ClothingItemWithIndex } from '@/types/clothing'
+
 defineProps<{
-  index: number
+  item: ClothingItemWithIndex
   isSelected: boolean
-  imgSrc: string
-  header: string
-  data: string[]
 }>()
 
 defineEmits<{
-  (e: 'select', index: number): void
+  (e: 'select', item: ClothingItemWithIndex): void
 }>()
 </script>
 
 <template>
   <div
-    :id="'skin-item-' + index"
+    :id="'skin-item-' + item.originalIndex"
     class="flex flex-col w-full relative hover:cursor-pointer rounded-lg p-2 bg-white skin-item-shadow"
-    @click="$emit('select', index)"
+    @click="$emit('select', item)"
   >
     <div class="absolute top-2 right-2">
       <div
@@ -26,15 +25,15 @@ defineEmits<{
         ✓
       </div>
     </div>
-    <img :src="imgSrc" alt="" class="object-cover" />
+    <img :src="item.imgSrc" alt="" class="object-cover" />
     <div class="w-full bg-gray-100 rounded-b-lg">
-      <h5 class="p-2">{{ header }}</h5>
-      <div v-if="data.length > 1" class="flex flex-col flex-wrap gap-1">
+      <h5 class="p-2">{{ item.header }}</h5>
+      <div v-if="item.data.length > 1" class="flex flex-col flex-wrap gap-1">
         <span
-          v-for="(item, index) in data.slice(1)"
+          v-for="(dataItem, index) in item.data.slice(1)"
           :key="index + 1"
           class="px-2 py-1 rounded-sm text-sm"
-          >{{ item }}</span
+          >{{ dataItem }}</span
         >
       </div>
     </div>

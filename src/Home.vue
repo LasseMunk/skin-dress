@@ -3,13 +3,10 @@ import { BModal, BVerticalLayout, BConfirmCancel, BButton, BInput } from '@first
 
 import SkinItem from './components/SkinItem.vue'
 import WebcamCapture from './components/WebcamCapture.vue'
+import WebCamAIGen from './components/WebCamAIGen.vue'
 import clothingDataRaw from './clothing-details-unique.json'
-import type { ClothingData, ClothingItem } from './types/clothing'
+import type { ClothingData, ClothingItem, ClothingItemWithIndex } from './types/clothing'
 import { ref, computed, watch, onUnmounted } from 'vue'
-
-interface ClothingItemWithIndex extends ClothingItem {
-  originalIndex: number
-}
 
 const modalRef = ref<typeof BModal | null>(null)
 const showModal = ref<boolean>(false)
@@ -19,8 +16,11 @@ const debouncedSearchQuery = ref<string>('')
 const clothingData = clothingDataRaw as ClothingData
 const items = Object.values(clothingData)
 const selectedItems = ref<number[]>([])
-const showWebcam = ref<boolean>(true)
 const capturedPhoto = ref<string | null>(null)
+
+const capturePhoto = ref<boolean>(false)
+const generateImage = ref<boolean>(false)
+const chosenPhotoUrls = ref<string[]>([])
 
 let searchTimeout: number | null = null
 
@@ -60,14 +60,16 @@ const itemsToRender = computed<ClothingItemWithIndex[]>(() => {
     })
 })
 
-const toggleItemSelection = async (selectedIndex: number) => {
-  if (selectedItems.value.includes(selectedIndex)) {
-    selectedItems.value = selectedItems.value.filter((i: number) => i !== selectedIndex)
+const toggleItemSelection = async (item: ClothingItemWithIndex) => {
+  if (selectedItems.value.includes(item.originalIndex)) {
+    selectedItems.value = selectedItems.value.filter((i: number) => i !== item.originalIndex)
+    chosenPhotoUrls.value = chosenPhotoUrls.value.filter((url) => url !== item.imgSrc)
   } else {
-    selectedItems.value.push(selectedIndex)
+    selectedItems.value.push(item.originalIndex)
+    chosenPhotoUrls.value.push(item.imgSrc)
   }
 
-  const skinItem = document.getElementById('skin-item-' + selectedIndex)
+  const skinItem = document.getElementById('skin-item-' + item.originalIndex)
   if (skinItem) {
     skinItem.scrollIntoView({
       behavior: 'smooth',
@@ -83,10 +85,6 @@ const onDressMe = () => {
 
 const onSearch = (event: string) => {
   searchQuery.value = event
-}
-
-const toggleWebcam = () => {
-  showWebcam.value = !showWebcam.value
 }
 
 const onPhotoCapture = (imageData: string) => {
@@ -113,19 +111,30 @@ onUnmounted(() => {
         <div class="w-full flex flex-row items-center justify-between p-4">
           <h5 class="text-2xl font-bold">Welcome to the Skin Shop!</h5>
           <div class="flex gap-2">
-            <BButton @click="toggleWebcam" :label="showWebcam ? 'Hide Camera' : 'Show Camera'" />
+            <BButton v-if="!capturePhoto" @click="capturePhoto = true" :label="'Capture Photo'" />
+            <BButton
+              v-if="!generateImage"
+              @click="generateImage = true"
+              :label="'Generate Image'"
+            />
             <BButton v-if="!showModal" @click="showModal = true" :label="'Dress me!'" />
           </div>
         </div>
       </template>
       <template #main>
         <!-- Webcam Section -->
-        <div v-if="showWebcam" class="w-full h-full flex">
+        <div class="w-full h-full flex">
           <div class="flex-1 h-full">
-            <WebcamCapture
+            <WebCamAIGen
+              :clothing-data-urls="chosenPhotoUrls"
+              :capturePhoto="capturePhoto"
+              :generate-image="generateImage"
               class="w-full h-full"
               @photo-capture="onPhotoCapture"
               @error="onWebcamError"
+              @disable:capture-photo="capturePhoto = false"
+              @disable:generate-image="generateImage = false"
+              @update:clothing-data-urls="chosenPhotoUrls = $event"
             />
           </div>
           <div v-if="capturedPhoto" class="w-80 p-4">
@@ -156,12 +165,9 @@ onUnmounted(() => {
           <div class="grid grid-cols-3 gap-8 p-8">
             <SkinItem
               v-for="(item, index) in itemsToRender"
-              :index="item.originalIndex"
+              :item="item"
               :key="item.originalIndex"
               :id="`skin-item-${item.originalIndex}`"
-              :imgSrc="item.imgSrc"
-              :header="item.header"
-              :data="item.data"
               :isSelected="selectedItems.includes(item.originalIndex)"
               @select="toggleItemSelection"
             />
