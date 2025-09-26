@@ -79,7 +79,7 @@ export default function Home() {
 
   // No longer splitting the capture; we use the full-frame image directly
 
-  const handleGenerateImage = useCallback(async () => {
+  const handleGenerateImage = async (capturedDataUrl, clothingDataUrls, customPrompt) => {
     console.log('[UI] Generate Image clicked', {
       hasCapture: Boolean(capturedDataUrl),
       clothingCount: clothingDataUrls?.length || 0,
@@ -115,7 +115,7 @@ export default function Home() {
     } finally {
       setLoadingStep(null)
     }
-  }, [capturedDataUrl, clothingDataUrls, customPrompt])
+  }
 
   const handleGenerateVideo = useCallback(async () => {
     console.log('[UI] Generate Video clicked', { hasImage: Boolean(generatedImageUrl) })

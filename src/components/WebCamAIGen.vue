@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watchEffect } from 'vue'
+// @ts-ignore
+import generateImageHandler from '../api/generate-image.js'
 
 const { capturePhoto, generateImage, clothingDataUrls } = defineProps<{
   capturePhoto: boolean
@@ -152,8 +154,9 @@ const handleGenerateImage = async () => {
   if (!capturedDataUrl.value || !clothingDataUrls.length) return
 
   loadingStep.value = 'image'
+
   try {
-    // Prepare payload for API
+    // Prepare payload for API handler
     const prompt = (customPrompt.value && customPrompt.value.trim()) || defaultPrompt
     const payload = {
       person_image: capturedDataUrl.value,
@@ -163,20 +166,34 @@ const handleGenerateImage = async () => {
     }
     console.log('[UI] Image payload', payload)
 
-    const resp = await fetch('/api/generate-image', {
+    // Create mock request and response objects for the handler
+    const mockReq = {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    console.log('[UI] Image API status', resp.status)
-    const json = await resp.json()
-    console.log('[UI] Image API JSON', json)
+      body: payload,
+    }
 
-    if (!resp.ok) throw new Error(json.error || 'Image generation failed')
+    const mockRes = {
+      status: (code: number) => ({
+        json: (data: any) => ({
+          status: code,
+          json: () => Promise.resolve(data),
+          ok: code >= 200 && code < 300,
+          data,
+        }),
+      }),
+    }
 
-    generatedImageUrl.value = json.imageUrl
-    generatedVideoUrl.value = null
-    currentStep.value = 'image'
+    console.log('[UI] Calling generate image handler directly')
+    const result = await generateImageHandler(mockReq, mockRes)
+    console.log('[UI] Handler result', result)
+
+    if (result.status >= 200 && result.status < 300) {
+      generatedImageUrl.value = result.data.imageUrl
+      generatedVideoUrl.value = null
+      currentStep.value = 'image'
+    } else {
+      throw new Error(result.data.error || 'Image generation failed')
+    }
   } catch (err: any) {
     console.log('[UI] Generate image error', err)
     alert(err?.message || 'Error generating image')
@@ -358,32 +375,6 @@ watchEffect(() => {
     <div
       class="absolute left-0 right-0 bottom-0 p-3 flex flex-wrap items-center justify-center gap-2"
     >
-      <button
-        @click="handleCapture"
-        class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-white"
-      >
-        Capture Selfie
-      </button>
-
-      <button
-        @click="handleGenerateImage"
-        :disabled="!capturedDataUrl || !clothingDataUrls.length || loadingStep === 'image'"
-        class="px-4 py-2 rounded text-white disabled:opacity-50"
-        :class="loadingStep === 'image' ? 'bg-gray-600' : 'bg-purple-600 hover:bg-purple-700'"
-      >
-        {{ loadingStep === 'image' ? 'Generating Image...' : 'Generate Image' }}
-      </button>
-
-      <label class="inline-flex items-center gap-2 cursor-pointer">
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          @change="onClothingFilesChange"
-          class="text-white"
-        />
-      </label>
-
       <!-- Clothing preview thumbnails -->
       <div v-if="clothingDataUrls.length > 0" class="flex gap-1 flex-wrap items-center max-w-60">
         <img
