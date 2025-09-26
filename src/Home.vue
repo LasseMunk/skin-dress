@@ -19,7 +19,7 @@ const debouncedSearchQuery = ref<string>('')
 const clothingData = clothingDataRaw as ClothingData
 const items = Object.values(clothingData)
 const selectedItems = ref<number[]>([])
-const showWebcam = ref<boolean>(false)
+const showWebcam = ref<boolean>(true)
 const capturedPhoto = ref<string | null>(null)
 
 let searchTimeout: number | null = null

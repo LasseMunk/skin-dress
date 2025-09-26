@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { BButton } from '@firstnoodle-ui/bui'
 
 interface Props {
@@ -91,6 +91,10 @@ const capturePhoto = () => {
   canvas.height = videoHeight
 
   if (context) {
+    // Set white background
+    context.fillStyle = 'white'
+    context.fillRect(0, 0, videoWidth, videoHeight)
+
     // If mirroring is enabled, flip the canvas horizontally
     if (mirrorVideo.value) {
       context.scale(-1, 1)
@@ -137,6 +141,9 @@ const checkCameraSupport = () => {
 // Component lifecycle
 onMounted(() => {
   checkCameraSupport()
+  nextTick(() => {
+    startCamera()
+  })
 })
 
 onUnmounted(() => {
@@ -162,7 +169,7 @@ defineExpose({
         autoplay
         muted
         playsinline
-        class="w-full h-full object-cover"
+        class="w-full h-full object-cover bg-white"
         :class="{ mirror: mirrorVideo }"
       ></video>
 
@@ -219,7 +226,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000;
+  background: #fff;
 }
 
 .video-aspect-container video {
